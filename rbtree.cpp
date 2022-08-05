@@ -17,6 +17,40 @@
 using namespace std;
 using namespace RedBlackTree;
 
+/* MÉTODOS AUXILIARES */
+
+NodePtr RBTree::get_node(int key) {
+  NodePtr current = root;
+
+  while (current != NULL && key != current->key) {
+    current = key < current->key ? current->left : current->right;
+  }
+
+  return current;
+}
+
+NodePtr RBTree::min(NodePtr node) {
+  NodePtr current = node == nullptr ? root : node;
+
+  while (current->left != NULL) {
+    current = current->left;
+  }
+
+  return current;
+}
+
+NodePtr RBTree::max(NodePtr node) {
+  NodePtr current = node == nullptr ? root : node;
+
+  while (current->right != NULL) {
+    current = current->right;
+  }
+
+  return current;
+}
+
+/* ------------------------------------------------------------ */
+
 /* ROTAÇÔES */
 
 /*
@@ -84,7 +118,7 @@ void RBTree::right_rotate(NodePtr x) {
   x->parent = y;
 }
 
-/* -------------------- */
+/* ------------------------------------------------------------ */
 
 /* INSERÇÃO */
 
@@ -170,6 +204,36 @@ void RBTree::insert_fixup(NodePtr new_node) {
   }
   root->color = BLACK;
 }
+
+/* ------------------------------------------------------------ */
+
+/* REMOÇÃO */
+
+void RBTree::transplant(NodePtr u, NodePtr v) {
+  if (u == nullptr || v == nullptr) {
+    return;
+  }
+
+  if (u->parent == nullptr) {
+    root = v;
+  } else if (u == u->parent->left) {
+    u->parent->left = v;
+  } else {
+    u->parent->right = v;
+  }
+
+  v->parent = u->parent;
+}
+
+void RBTree::remove(int key) {
+  NodePtr z, y = get_node(key);
+  if (z == nullptr) {
+    return;
+  }
+  Color original_color = y->color;
+}
+
+void RBTree::remove_fixup(NodePtr node) {}
 
 /* ------------------------------------------------------------ */
 
