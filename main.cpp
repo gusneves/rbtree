@@ -15,13 +15,12 @@ int main() {
   tree.insert(20, 200);
   tree.insert(100, 1000);
   tree.insert(99, 990);
-  tree.insert(45, 450);
-  tree.insert(1, 10);
-  tree.insert(44, 440);
+  tree.insert(95, 950);
 
-  cout << tree.get_node(30)->value << endl;
-  cout << tree.min()->value << endl;
-  cout << tree.max()->value << endl;
+  tree.preorder();
 
+  tree.remove(10);
+
+  tree.preorder();
   return 0;
 }

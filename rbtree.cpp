@@ -11,6 +11,7 @@
 */
 
 #include "rbtree.h"
+#include <cstddef>
 #include <iostream>
 #include <iterator>
 
@@ -22,7 +23,7 @@ using namespace RedBlackTree;
 NodePtr RBTree::get_node(int key) {
   NodePtr current = root;
 
-  while (current != NULL && key != current->key) {
+  while (current != nullptr && key != current->key) {
     current = key < current->key ? current->left : current->right;
   }
 
@@ -209,8 +210,9 @@ void RBTree::insert_fixup(NodePtr new_node) {
 
 /* REMOÇÃO */
 
+// Faz o segundo nó tomar o lugar do primeiro
 void RBTree::transplant(NodePtr u, NodePtr v) {
-  if (u == nullptr || v == nullptr) {
+  if (u == nullptr) {
     return;
   }
 
@@ -221,19 +223,115 @@ void RBTree::transplant(NodePtr u, NodePtr v) {
   } else {
     u->parent->right = v;
   }
-
-  v->parent = u->parent;
+  if (v != nullptr) {
+    v->parent = u->parent;
+  }
 }
 
 void RBTree::remove(int key) {
-  NodePtr z, y = get_node(key);
+  NodePtr z = get_node(key);
+  NodePtr x;
   if (z == nullptr) {
     return;
   }
-  Color original_color = y->color;
-}
+  Color original_color = z->color;
 
-void RBTree::remove_fixup(NodePtr node) {}
+  if (z->left == nullptr) {
+    cout << "caso1" << endl;
+    x = z->right;
+    transplant(z, x);
+  } else if (z->right == nullptr) {
+    cout << "caso2" << endl;
+    x = z->left;
+    transplant(z, x);
+  } else {
+    cout << "caso3" << endl;
+    NodePtr y = min(z->right);
+    original_color = y->color;
+    x = y->right;
+    if (y->parent == z) {
+      x->parent = y;
+    } else {
+      transplant(y, y->right);
+      y->right = z->right;
+      y->right->parent = y;
+    }
+    transplant(z, y);
+    y->left = z->left;
+    y->left->parent = y;
+    y->color = z->color;
+  }
+
+  /*
+    Se a cor original do nó y for vermelha, as propriedades da árvore se
+    manterão pelas seguintes razões:
+      - Nenhuma black-height foi alterada;
+      - Nenhum nó vermelho foi feito adjacente;
+      - Como y não não pode ser a raíz se for vermelho, a raíz continua preta.
+   */
+  if (original_color == BLACK) {
+    /*
+      Casos de violação das regras:
+        1. Se o nó removido for a raíz, e um nó vermelho tomou seu lugar;
+        2. Se tanto x quanto seu ppai forem vermlehos;
+        3. Mover o nó y pela árvore, pode resultar em algum caminho da árvore
+      contendo um nó preto a menos; .
+    */
+    remove_fixup(x);
+  }
+}
+void RBTree::remove_fixup(NodePtr node) {
+  while (node != root && node->color == BLACK) {
+    if (node == node->parent->left) {
+      NodePtr w = node->parent->right;
+      if (w->color == RED) {
+        w->color = BLACK;
+        node->parent->color = RED;
+        left_rotate(node->parent);
+        w = node->right;
+      }
+      if (w->left->color == BLACK && w->right->color == BLACK) {
+        w->color = RED;
+        node = node->parent;
+      } else if (w->right->color == BLACK) {
+        w->left->color = BLACK;
+        w->color = RED;
+        right_rotate(w);
+        w = node->parent->right;
+      }
+
+      w->color = node->parent->color;
+      node->parent->color = BLACK;
+      w->right->color = BLACK;
+      left_rotate(node->parent);
+      node = root;
+    } else {
+      NodePtr w = node->parent->left;
+      if (w->color == RED) {
+        w->color = BLACK;
+        node->parent->color = RED;
+        right_rotate(node->parent);
+        w = node->left;
+      }
+      if (w->right->color == BLACK && w->left->color == BLACK) {
+        w->color = RED;
+        node = node->parent;
+      } else if (w->left->color == BLACK) {
+        w->right->color = BLACK;
+        w->color = RED;
+        left_rotate(w);
+        w = node->parent->left;
+      }
+
+      w->color = node->parent->color;
+      node->parent->color = BLACK;
+      w->left->color = BLACK;
+      right_rotate(node->parent);
+      node = root;
+    }
+  }
+  node->color = BLACK;
+}
 
 /* ------------------------------------------------------------ */
 
