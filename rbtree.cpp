@@ -10,10 +10,12 @@
        descendentes contêm o mesmo número de nós da cor preta.
 */
 
-#include "rbtree.h"
+#include "rbtree.hpp"
+#include <assert.h>
 #include <cstddef>
 #include <iostream>
 #include <iterator>
+#include <string>
 
 using namespace std;
 using namespace RedBlackTree;
@@ -30,8 +32,8 @@ NodePtr RBTree::get_node(int key) {
   return current;
 }
 
-NodePtr RBTree::min(NodePtr node) {
-  NodePtr current = node == nullptr ? root : node;
+NodePtr RBTree::min() {
+  NodePtr current = root;
 
   while (current->left != NULL) {
     current = current->left;
@@ -40,8 +42,28 @@ NodePtr RBTree::min(NodePtr node) {
   return current;
 }
 
+NodePtr RBTree::min(NodePtr node) {
+  NodePtr current = node;
+
+  while (current->left != NULL) {
+    current = current->left;
+  }
+
+  return current;
+}
+
+NodePtr RBTree::max() {
+  NodePtr current = root;
+
+  while (current->right != NULL) {
+    current = current->right;
+  }
+
+  return current;
+}
+
 NodePtr RBTree::max(NodePtr node) {
-  NodePtr current = node == nullptr ? root : node;
+  NodePtr current = node;
 
   while (current->right != NULL) {
     current = current->right;
@@ -231,28 +253,31 @@ void RBTree::transplant(NodePtr u, NodePtr v) {
 void RBTree::remove(int key) {
   NodePtr z = get_node(key);
   NodePtr x;
+  NodePtr p = nullptr;
   if (z == nullptr) {
     return;
   }
   Color original_color = z->color;
 
   if (z->left == nullptr) {
-    cout << "caso1" << endl;
     x = z->right;
     transplant(z, x);
   } else if (z->right == nullptr) {
-    cout << "caso2" << endl;
     x = z->left;
     transplant(z, x);
   } else {
-    cout << "caso3" << endl;
     NodePtr y = min(z->right);
     original_color = y->color;
     x = y->right;
+    p = y->parent;
     if (y->parent == z) {
-      x->parent = y;
+      if (x != nullptr) {
+        x->parent = y;
+      } else {
+        p = y;
+      }
     } else {
-      transplant(y, y->right);
+      transplant(y, x);
       y->right = z->right;
       y->right->parent = y;
     }
@@ -261,6 +286,7 @@ void RBTree::remove(int key) {
     y->left->parent = y;
     y->color = z->color;
   }
+  delete z;
 
   /*
     Se a cor original do nó y for vermelha, as propriedades da árvore se
@@ -273,61 +299,76 @@ void RBTree::remove(int key) {
     /*
       Casos de violação das regras:
         1. Se o nó removido for a raíz, e um nó vermelho tomou seu lugar;
-        2. Se tanto x quanto seu ppai forem vermlehos;
+        2. Se tanto x quanto seu pai forem vermelhos;
         3. Mover o nó y pela árvore, pode resultar em algum caminho da árvore
-      contendo um nó preto a menos; .
+      contendo um nó preto a menos.
     */
-    remove_fixup(x);
+    remove_fixup(x, p);
   }
 }
-void RBTree::remove_fixup(NodePtr node) {
-  while (node != root && node->color == BLACK) {
-    if (node == node->parent->left) {
-      NodePtr w = node->parent->right;
-      if (w->color == RED) {
-        w->color = BLACK;
-        node->parent->color = RED;
-        left_rotate(node->parent);
-        w = node->right;
-      }
-      if (w->left->color == BLACK && w->right->color == BLACK) {
-        w->color = RED;
-        node = node->parent;
-      } else if (w->right->color == BLACK) {
-        w->left->color = BLACK;
-        w->color = RED;
-        right_rotate(w);
-        w = node->parent->right;
-      }
 
-      w->color = node->parent->color;
-      node->parent->color = BLACK;
-      w->right->color = BLACK;
-      left_rotate(node->parent);
-      node = root;
+bool _is_node_black(NodePtr n) { return n == nullptr || n->color == BLACK; }
+
+bool _both_child_black(Node n) {
+  return _is_node_black(n.right) && _is_node_black(n.left);
+}
+
+void RBTree::remove_fixup(NodePtr node, NodePtr parent) {
+  // assert(node != nullptr);
+  if (node == root) {
+    return;
+  }
+  while (node == nullptr || (node != root && node->color == BLACK)) {
+    NodePtr p = node == nullptr ? parent : node->parent;
+    NodePtr s;
+    if (node == p->left) {
+      s = p->right;
+      if (s->color == RED) {
+        s->color = BLACK;
+        p->color = RED;
+        left_rotate(p);
+        s = p->right;
+      }
+      if (_both_child_black(*s)) {
+        s->color = RED;
+        node = p;
+      } else {
+        if (_is_node_black(s->right)) {
+          s->left->color = BLACK;
+          s->color = RED;
+          right_rotate(s);
+          s = p->right;
+        }
+        s->color = p->color;
+        p->color = BLACK;
+        s->right->color = BLACK;
+        left_rotate(p);
+        node = root;
+      }
     } else {
-      NodePtr w = node->parent->left;
-      if (w->color == RED) {
-        w->color = BLACK;
-        node->parent->color = RED;
-        right_rotate(node->parent);
-        w = node->left;
+      s = p->left;
+      if (s->color == RED) {
+        s->color = BLACK;
+        p->color = RED;
+        right_rotate(p);
+        s = node->left;
       }
-      if (w->right->color == BLACK && w->left->color == BLACK) {
-        w->color = RED;
-        node = node->parent;
-      } else if (w->left->color == BLACK) {
-        w->right->color = BLACK;
-        w->color = RED;
-        left_rotate(w);
-        w = node->parent->left;
+      if (_both_child_black(*s)) {
+        s->color = RED;
+        node = p;
+      } else {
+        if (_is_node_black(s->left)) {
+          s->right->color = BLACK;
+          s->color = RED;
+          left_rotate(s);
+          s = p->left;
+        }
+        s->color = p->color;
+        p->color = BLACK;
+        s->left->color = BLACK;
+        right_rotate(p);
+        node = root;
       }
-
-      w->color = node->parent->color;
-      node->parent->color = BLACK;
-      w->left->color = BLACK;
-      right_rotate(node->parent);
-      node = root;
     }
   }
   node->color = BLACK;
@@ -337,10 +378,12 @@ void RBTree::remove_fixup(NodePtr node) {
 
 /* TRAVESSIA DA ÁRVORE - IMPRESSÃO DE VALORES  */
 
+string _getColorAsString(Node x) { return x.color == BLACK ? "BLACK" : "RED"; }
+
 void _preorder(NodePtr x) {
   if (x == nullptr)
     return;
-  cout << x->key << "_" << x->color << endl;
+  cout << x->key << "_" << x->value << "_" << _getColorAsString(*x) << endl;
   _preorder(x->left);
   _preorder(x->right);
 }
@@ -349,7 +392,7 @@ void _inorder(NodePtr x) {
   if (x == nullptr)
     return;
   _inorder(x->left);
-  cout << x->key << "_" << x->color << endl;
+  cout << x->key << "_" << x->value << "_" << _getColorAsString(*x) << endl;
   _inorder(x->right);
 }
 
@@ -358,7 +401,7 @@ void _postoder(NodePtr x) {
     return;
   _inorder(x->left);
   _inorder(x->right);
-  cout << x->key << "_" << x->color << endl;
+  cout << x->key << "_" << x->value << "_" << _getColorAsString(*x) << endl;
 }
 
 void RBTree::inorder() { _inorder(root); }

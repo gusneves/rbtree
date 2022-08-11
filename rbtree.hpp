@@ -42,7 +42,7 @@ protected:
   void right_rotate(NodePtr y);
   void insert_fixup(NodePtr new_node);
   void transplant(NodePtr u, NodePtr v);
-  void remove_fixup(NodePtr x);
+  void remove_fixup(NodePtr x, NodePtr p = nullptr);
 
 public:
   RBTree() : root(nullptr) {}
@@ -52,7 +52,9 @@ public:
   void postorder();
   void remove(int key);
   NodePtr get_node(int key);
-  NodePtr min(NodePtr node = nullptr);
-  NodePtr max(NodePtr node = nullptr);
+  NodePtr min();
+  NodePtr min(NodePtr node);
+  NodePtr max();
+  NodePtr max(NodePtr node);
 };
 } // namespace RedBlackTree
