@@ -78,12 +78,13 @@ NodePtr RBTree::max(NodePtr node) {
 
 /*
     Algoritmos de Rotação serão utilizados em outras funções da árvore
+    Efetuam a seguinte transformação em uma árvore:
 
-            y         left_rotate          x
-          /   \      <------------       /   \
-         x     c     ------------>      a     y
-       /  \          right_rotate           /   \
-      a    b                               b     c
+            y         left_rotate(x)          x
+          /   \      <---------------       /   \
+         x     c     --------------->      a     y
+       /  \          right_rotate(y)           /   \
+      a    b                                  b     c
  */
 
 void RBTree::left_rotate(NodePtr x) {
@@ -251,14 +252,19 @@ void RBTree::transplant(NodePtr u, NodePtr v) {
 }
 
 void RBTree::remove(int key) {
+  // Busca o nó pela key passada por parâmetro
   NodePtr z = get_node(key);
-  NodePtr x;
-  NodePtr p = nullptr;
   if (z == nullptr) {
     return;
   }
-  Color original_color = z->color;
 
+  NodePtr x;
+  NodePtr p = nullptr;
+  Color original_color = z->color;
+  /*
+    Caso o nó a ser excluído possua apenas um filho, seu filho toma seu lugar.
+    Seja um filho à direita ou um filho à esquerda.
+  */
   if (z->left == nullptr) {
     x = z->right;
     transplant(z, x);
@@ -266,8 +272,18 @@ void RBTree::remove(int key) {
     x = z->left;
     transplant(z, x);
   } else {
+    /*
+      Caso o nó possua os dois filhos, devemos escolher uma das seguintes opções
+      para substituir o nó a ser excluído:
+        1 - O maior nó da subárvore à esquerda;
+        2 - O menor nó da subárvore à direita;
+
+      Neste caso, optamos pela segunda opção e atribuímos este nó ao ponteiro y.
+    */
     NodePtr y = min(z->right);
     original_color = y->color;
+    // Pegamos também o ponteiro x, que aponta para o nó que entrará no lugar do
+    // nó apontado por y
     x = y->right;
     p = y->parent;
     if (y->parent == z) {
@@ -277,10 +293,12 @@ void RBTree::remove(int key) {
         p = y;
       }
     } else {
+      // Transplantamos y por x
       transplant(y, x);
       y->right = z->right;
       y->right->parent = y;
     }
+    // Por fim, transplantamos z por y
     transplant(z, y);
     y->left = z->left;
     y->left->parent = y;
@@ -300,10 +318,11 @@ void RBTree::remove(int key) {
       Casos de violação das regras:
         1. Se o nó removido for a raíz, e um nó vermelho tomou seu lugar;
         2. Se tanto x quanto seu pai forem vermelhos;
-        3. Mover o nó y pela árvore, pode resultar em algum caminho da árvore
-      contendo um nó preto a menos.
+        3. Simplesmente mover o nó y pela árvore, pode resultar em algum caminho
+      da árvore contendo um nó preto a menos.
     */
-    remove_fixup(x, p);
+    remove_fixup(x, p); // Passamos o nó pai de x (apontado por p) para
+                        // tratarmos o caso em que x é um ponteiro para nulo
   }
 }
 
@@ -314,13 +333,13 @@ bool _both_child_black(Node n) {
 }
 
 void RBTree::remove_fixup(NodePtr node, NodePtr parent) {
-  // assert(node != nullptr);
   if (node == root) {
     return;
   }
   while (node == nullptr || (node != root && node->color == BLACK)) {
-    NodePtr p = node == nullptr ? parent : node->parent;
-    NodePtr s;
+    // Checagem para o caso em que 'node' é enviado como nullptr
+    NodePtr p = node == nullptr ? parent : node->parent; // nó pai
+    NodePtr s;                                           // nó irmão
     if (node == p->left) {
       s = p->right;
       if (s->color == RED) {
@@ -329,6 +348,7 @@ void RBTree::remove_fixup(NodePtr node, NodePtr parent) {
         left_rotate(p);
         s = p->right;
       }
+      // Checa se ambos os filhos do nó irmão são nós pretos
       if (_both_child_black(*s)) {
         s->color = RED;
         node = p;
